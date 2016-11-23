@@ -8,7 +8,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback {
     public static final String LOG_CAT = MainActivity.class.getSimpleName();
 
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
@@ -52,6 +52,13 @@ public class MainActivity extends AppCompatActivity {
 
             if (ff != null) {
                 ff.onLocationChanged();
+            }
+
+            DetailFragment df = (DetailFragment) getFragmentManager()
+                    .findFragmentByTag(DETAILFRAGMENT_TAG);
+
+            if (df != null) {
+                df.onLocationChanged(location);
             }
 
             mLocation = location;
@@ -103,6 +110,28 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         } else {
             Log.d(LOG_CAT, "Couldn't call " + location + ", no receiving apps installed!");
+        }
+    }
+
+    @Override
+    public void onItemSelected(Uri contentUri) {
+        if (mTwoPane) {
+            // In two-pane mode, show the detail view in this activity by
+            // adding or replacing the detail fragment using a
+            // fragment transaction.
+            Bundle args = new Bundle();
+            args.putParcelable(DetailFragment.DETAIL_URI, contentUri);
+
+            DetailFragment fragment = new DetailFragment();
+            fragment.setArguments(args);
+
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.weather_detail_container, fragment, DETAILFRAGMENT_TAG)
+                    .commit();
+        } else {
+            Intent intent = new Intent(this, DetailActivity.class);
+            intent.setData(contentUri);
+            startActivity(intent);
         }
     }
 }

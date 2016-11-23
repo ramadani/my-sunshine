@@ -6,11 +6,11 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.ShareActionProvider;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -23,12 +23,16 @@ import android.widget.TextView;
 import id.ramadani.mysunshine.data.WeatherContract.*;
 
 public class DetailFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    public static final String DETAIL_URI = "URI";
+
     private static final String LOG_CAT = DetailFragment.class.getSimpleName();
 
     private static final String FORECAST_SHARE_HASHTAG = " #SunshineApp";
 
     private ShareActionProvider mShareActionProvider;
     private String mForecastStr;
+    private Uri mUri;
 
     private static final int DETAIL_LOADER = 0;
 
@@ -77,7 +81,14 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            mUri = arguments.getParcelable(DetailFragment.DETAIL_URI);
+        }
+
         View rootView = inflater.inflate(R.layout.fragment_detail, container, false);
         mIconView = (ImageView) rootView.findViewById(R.id.detail_icon);
         mDateView = (TextView) rootView.findViewById(R.id.detail_date_textview);
@@ -115,24 +126,33 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         }
     }
 
-    @Override
-    public Loader onCreateLoader(int id, Bundle args) {
-        Log.d(LOG_CAT, "In onCreateLoader");
-        Intent intent = getActivity().getIntent();
+    public void onLocationChanged(String newLocation) {
+        // replace the uri, since the location has changed
+        Uri uri = mUri;
+        if (uri != null) {
+            long date = WeatherEntry.getDateFromUri(uri);
+            Uri updatedUri = WeatherEntry.buildWeatherLocationWithDate(newLocation, date);
+            mUri = updatedUri;
 
-        if (intent == null || intent.getData() == null) {
-            return null;
+            getLoaderManager().restartLoader(DETAIL_LOADER, null, this);
+        }
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        if (mUri != null) {
+            // Now create and return a CursorLoader that will take care of
+            // creating a Cursor for the data being displayed.
+            return new CursorLoader(
+                    getActivity(),
+                    mUri,
+                    DETAIL_COLUMNS,
+                    null,
+                    null,
+                    null);
         }
 
-        // Now create and return a CursorLoader that will take care of
-        // creating a Cursor for the data being displayed.
-        return new CursorLoader(
-                getActivity(),
-                intent.getData(),
-                DETAIL_COLUMNS,
-                null,
-                null,
-                null);
+        return null;
     }
 
     @Override
