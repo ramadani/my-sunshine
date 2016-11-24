@@ -6,6 +6,7 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:minHeight="?android:attr/listPreferredItemHeight"
+    android:background="@drawable/touch_selector"
     android:padding="@dimen/activity_vertical_margin">
 
     <LinearLayout
